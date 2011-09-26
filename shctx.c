@@ -397,7 +397,8 @@ int shared_context_init(SSL_CTX *ctx, int size)
 			memcached_server_free(servers);
 
 			/* Also disable tickets */
-			SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
+			if (!OPTIONS.TICKET)
+				SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
 		}
 #endif
 

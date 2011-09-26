@@ -41,6 +41,7 @@
 .Op Fl B Ar backlog
 .Op Fl C Ar cache
 .Op Fl M Ar memcache
+.Op Fl K Ar ticket
 .Op Fl r Ar path
 .Op Fl u Ar username
 .Op Fl qs
@@ -96,6 +97,11 @@ Store and retrieve sessions from memcached if they are not available
 in the local cache. This option cannot be used without a local cache.
 .Ar memcache
 is a string defining the list of memcached servers to use.
+.It Fl K Ar ticket
+Generate ticket keys from
+.Ar ticket
+and the secret key instead of generating them randomly. This allows to
+share tickets between multiple instances of stud.
 .It Fl r Ar path
 Chroot to the given path. By default, no chroot is done.
 .It Fl u Ar username

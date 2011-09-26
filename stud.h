@@ -59,6 +59,7 @@ typedef struct stud_options {
     const char *MEMCACHED;
 #endif /* USE_MEMCACHED */
 #endif /* USE_SHARED_CACHE */
+    const char *TICKET;
     int QUIET;
     int SYSLOG;
 } stud_options;

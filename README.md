@@ -99,6 +99,8 @@ Detail about the entire set of options can be found by invoking `stud -h`:
     Performance:
       -n CORES                 number of worker processes (default is 1)
       -B BACKLOG               set listen backlog size (default is 100)
+      -M MEMCACHED             enable use of the specified memcached servers for sessions
+      -K TICKET                enable ticket sharing using TICKET to generate keys
 
     Security:
       -r PATH                  chroot

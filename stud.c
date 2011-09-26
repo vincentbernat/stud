@@ -94,6 +94,7 @@ stud_options OPTIONS = {
     NULL,         // MEMCACHED
 #endif /* USE_MEMCACHED */
 #endif /* USE_SHARED_CACHE */
+    NULL,         // TICKET
     0,             // QUIET
     0             // SYSLOG    
 };
@@ -234,6 +235,59 @@ static SSL_CTX * init_openssl() {
         }
     }
 #endif /* USE_SHARED_CACHE */
+
+    if (OPTIONS.TICKET) {
+        /* Allow sharing of tickets between multiple instances of stud
+           by generating keys from a common seed instead of just
+           generating them from random. */
+        unsigned char keys[48];
+        memset(keys, 0, sizeof(keys));
+
+        /* Read again the private key */
+	FILE *in;
+	EVP_PKEY *pkey=NULL;
+	if ((in=fopen(OPTIONS.CERT_FILE, "r")) == NULL) {
+            ERR("{core} Not able to open %s:%s\n", OPTIONS.CERT_FILE, strerror(errno));
+            exit(1);
+        }
+        if ((pkey = PEM_read_PrivateKey(in, NULL, NULL, NULL)) == NULL) {
+            ERR_print_errors_fp(stderr);
+            exit(1);
+        }
+        fclose(in);
+
+        /* To get our key, we sign the seed with the private key */
+        unsigned int siglen;
+        unsigned char *sign;
+        EVP_MD_CTX mdctx;
+        EVP_MD_CTX_init(&mdctx);
+        EVP_SignInit(&mdctx, EVP_sha256());
+        if (!EVP_SignUpdate(&mdctx, OPTIONS.TICKET, strlen(OPTIONS.TICKET))) {
+            ERR_print_errors_fp(stderr);
+            exit(1);
+        }
+        if (!(sign = malloc(EVP_PKEY_size(pkey)))) {
+            ERR("{core} unable to allocate memory for signature\n");
+            exit(1);
+        }
+        if (!EVP_SignFinal(&mdctx, sign, &siglen, pkey)) {
+            ERR_print_errors_fp(stderr);
+            exit(1);
+        }
+        if (siglen < sizeof(keys)) {
+            ERR("{core} RSA key is not able to generate large enough signature (%d)\n", siglen);
+            exit(1);
+        }
+        /* And we keep only the first bytes. */
+        memcpy(keys, sign, sizeof(keys));
+        free(sign);
+
+        /* Set ticket keys */
+        if (SSL_CTX_ctrl(ctx, SSL_CTRL_SET_TLSEXT_TICKET_KEYS, sizeof(keys), keys) != 1) {
+            ERR("{core} Unable to set TLS ticket keys\n");
+            exit(1);
+        }
+    }
 
     return ctx;
 }
@@ -795,6 +849,7 @@ static void usage_fail(const char *prog, const char *msg) {
 "  -M MEMCACHED             enable use of the specified memcached servers for sessions\n"
 #endif /* USE_MEMCACHED */
 #endif /* USE_SHARED_CACHE */
+"  -K TICKET                enable ticket sharing using TICKET to generate keys\n"
 "\n"
 "Security:\n"
 "  -r PATH                  chroot\n"
@@ -864,7 +919,7 @@ static void parse_cli(int argc, char **argv) {
 
     while (1) {
         int option_index = 0;
-        c = getopt_long(argc, argv, "hf:b:n:c:u:r:B:C:M:q:s",
+        c = getopt_long(argc, argv, "hf:b:n:c:u:r:B:C:M:K:q:s",
                 long_options, &option_index);
 
         if (c == -1)
@@ -942,6 +997,10 @@ static void parse_cli(int argc, char **argv) {
             break;
 #endif /* USE_MEMCACHED */
 #endif /* USE_SHARED_CACHE */
+
+        case 'K':
+            OPTIONS.TICKET = optarg;
+            break;
 
         case 'q':
             OPTIONS.QUIET = 1;

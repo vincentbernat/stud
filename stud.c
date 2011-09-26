@@ -283,7 +283,7 @@ static SSL_CTX * init_openssl() {
         free(sign);
 
         /* Set ticket keys */
-        if (SSL_CTX_ctrl(ctx, SSL_CTRL_SET_TLSEXT_TICKET_KEYS, sizeof(keys), keys) != 1) {
+        if (SSL_CTX_set_tlsext_ticket_keys(ctx, keys, sizeof(keys)) != 1) {
             ERR("{core} Unable to set TLS ticket keys\n");
             exit(1);
         }

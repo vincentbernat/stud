@@ -312,6 +312,11 @@ int shared_context_init(SSL_CTX *ctx, int size)
 	SSL_CTX_sess_set_get_cb(ctx, shctx_get_cb);
 	SSL_CTX_sess_set_remove_cb(ctx, shctx_remove_cb);
 
+	/* Disable internal OpenSSL cache */
+	SSL_CTX_set_session_cache_mode(ctx,
+				       SSL_SESS_CACHE_SERVER |
+				       SSL_SESS_CACHE_NO_INTERNAL);
+
         return ret;
 }
 
